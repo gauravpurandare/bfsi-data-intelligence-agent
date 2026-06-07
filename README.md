@@ -2,6 +2,12 @@
 
 An AI-inspired analytics application built using Python, Streamlit, Pandas, and Plotly.
 
+## Live Application
+
+🔗 Streamlit Application: https://bfsi-data-intelligence-agent-w6usay96rm5bkzcktxbwjg.streamlit.app/
+
+🔗 GitHub Repository: https://github.com/gauravpurandare/bfsi-data-intelligence-agent
+
 ## Features
 
 * Data Quality Analysis
