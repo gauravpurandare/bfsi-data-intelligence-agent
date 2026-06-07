@@ -4,8 +4,19 @@ import pandas as pd
 import plotly.express as px
 
 # Page title
-st.title("🏦 AI Banking Data Insight Agent")
-
+#st.title("🏦 AI Banking Data Insight Agent")
+st.set_page_config(
+    page_title="BFSI Data Intelligence Agent",
+    page_icon="🏦",
+    layout="wide"
+)
+st.title("🏦 BFSI Data Intelligence Agent")
+st.caption(
+    "AI-powered Banking Data Analysis, Fraud Detection and Business Insights Platform"
+)
+st.success(
+    "Upload a banking transaction dataset to perform data quality checks, fraud detection, business analysis and AI-assisted insights."
+)
 st.markdown(
     "Upload banking datasets and generate automated insights."
 )
