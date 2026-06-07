@@ -26,6 +26,48 @@ An AI-inspired analytics application built using Python, Streamlit, Pandas, and 
   * Natural language queries
   * Business insights generation
 
+## Application Screenshots
+
+### 🏦 Application Home Page
+
+The landing page allows users to upload banking transaction datasets and perform automated data quality checks, fraud detection, business analysis, and AI-assisted insights.
+
+![Application Home Page](screenshots/KPI.png)
+
+---
+
+### 📊 Dataset Preview & KPI Dashboard
+
+The application automatically analyzes uploaded datasets and provides key metrics including record count, column count, missing values, duplicate detection, and summary statistics.
+
+![Dataset Preview & KPI Dashboard](screenshots/Dataset_Preview.png)
+
+---
+
+### 🚨 Fraud Detection & Explainable Analytics
+
+Transactions exceeding statistically calculated thresholds are automatically identified as potentially suspicious. The application provides business-friendly explanations to help analysts understand why a transaction was flagged.
+
+![Fraud Detection](screenshots/Fraud_Detection_2.png)
+
+---
+
+### 🤖 Data Assistant – Natural Language Queries
+
+Users can interact with the dataset using simple natural language questions without writing SQL or Python code.
+
+Example question:
+
+![Data Assistant Question](screenshots/Data_Assistant_Question.png)
+
+---
+
+### ✅ Data Assistant Response
+
+The assistant returns contextual answers derived directly from the uploaded dataset.
+
+![Data Assistant Answer](screenshots/Data_Assitant_Answer.png)
+
 ## Technology Stack
 
 * Python
