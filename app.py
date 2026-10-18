@@ -40,104 +40,172 @@ if uploaded_file:
     # Version 2: Intelligent Schema Detection
     # =========================
 
+   
+    # =========================
+    # Version 2: Intelligent Schema Detection
+    # =========================
+
     st.subheader("🧭 Intelligent Column Detection")
 
     # Normalize column names for matching
     normalized_cols = {
-        col: "".join(ch.lower() for ch in str(col) if ch.isalnum())
+        col: "".join(
+            ch.lower() for ch in str(col) if ch.isalnum()
+        )
         for col in df.columns
     }
 
+    # Find a likely column using common aliases
     def find_candidate(aliases):
         for col, normalized in normalized_cols.items():
             if normalized in aliases:
                 return col
         return "Not available"
 
-    # Detect likely transaction amount column
-    amount_aliases = {
-        "transactionamount",
-        "txnamount",
-        "amount",
-        "transactionvalue",
-        "txnvalue",
-        "value"
+    # Define possible names for each business field
+    field_aliases = {
+        "Transaction Amount": {
+            "transactionamount", "txnamount", "amount",
+            "transactionvalue", "txnvalue", "value"
+        },
+        "Transaction ID": {
+            "transactionid", "txnid", "transactionreference",
+            "referenceid", "transactionnumber"
+        },
+        "Transaction Date": {
+            "transactiondate", "trandate", "postingdate",
+            "txndate", "valuedate", "date"
+        },
+        "Customer ID": {
+            "customerid", "customerno", "customernumber",
+            "clientid", "clientnumber", "custid"
+        },
+        "Transaction Type": {
+            "transactiontype", "txntype", "paymenttype",
+            "transactioncategory", "txcategory"
+        },
+        "Transaction Channel": {
+            "transactionchannel", "txnchannel", "channel",
+            "paymentchannel", "transactionmethod",
+            "paymentmethod"
+        },
+        "Location / Branch": {
+            "location", "city", "branch", "branchname",
+            "transactionlocation", "merchantlocation"
+        },
+        "Account ID": {
+            "accountid", "accountno", "accountnumber",
+            "acctid", "acctno", "acctnumber"
+        }
     }
 
-    detected_amount = find_candidate(amount_aliases)
-
-    # Detect likely transaction ID column
-    id_aliases = {
-        "transactionid",
-        "txnid",
-        "transactionreference",
-        "referenceid",
-        "transactionnumber"
+    # Suggest initial mappings
+    detected_fields = {
+        field: find_candidate(aliases)
+        for field, aliases in field_aliases.items()
     }
-
-    detected_id = find_candidate(id_aliases)
 
     available_columns = ["Not available"] + list(df.columns)
 
-    with st.expander("Review and confirm detected columns", expanded=True):
+    # Let the user confirm or change each mapping
+    selected_fields = {}
 
+    with st.expander(
+        "Review and confirm detected columns",
+        expanded=True
+    ):
         st.caption(
-            "The agent suggests column mappings automatically. "
-            "Please confirm them before analysis."
+            "Suggested mappings are based on column names. "
+            "Review them before using the analytics."
         )
 
-        amount_index = (
-            available_columns.index(detected_amount)
-            if detected_amount in available_columns
-            else 0
-        )
+        for field, detected_col in detected_fields.items():
 
-        amount_col = st.selectbox(
-            "Transaction Amount",
-            available_columns,
-            index=amount_index,
-            key="v2_amount_column"
-        )
+            default_index = (
+                available_columns.index(detected_col)
+                if detected_col in available_columns
+                else 0
+            )
 
-        id_index = (
-            available_columns.index(detected_id)
-            if detected_id in available_columns
-            else 0
-        )
+            selected_fields[field] = st.selectbox(
+                field,
+                available_columns,
+                index=default_index,
+                key=f"v2_mapping_{field}"
+            )
 
-        transaction_id_col = st.selectbox(
-            "Transaction ID",
-            available_columns,
-            index=id_index,
-            key="v2_transaction_id_column"
-        )
+    # Standard internal column names used by the application
+    canonical_names = {
+        "Transaction Amount": "TransactionAmount",
+        "Transaction ID": "TransactionID",
+        "Transaction Date": "TransactionDate",
+        "Customer ID": "CustomerID",
+        "Transaction Type": "TransactionType",
+        "Transaction Channel": "TransactionChannel",
+        "Location / Branch": "Location",
+        "Account ID": "AccountID"
+    }
 
-    # Create standard column names for existing features
-    # while preserving the original uploaded columns.
+    # Apply confirmed mappings
+    for field, source_col in selected_fields.items():
 
-    if amount_col != "Not available":
-        amount_values = (
-            df[amount_col]
-            .astype(str)
-            .str.replace(r"[$,₹£€\s]", "", regex=True)
-        )
+        if source_col == "Not available":
+            continue
 
-        df["TransactionAmount"] = pd.to_numeric(
-            amount_values,
-            errors="coerce"
-        )
+        target_col = canonical_names[field]
 
-        st.success(
-            f"Transaction amount mapped to: {amount_col}"
-        )
-    else:
+        if field == "Transaction Amount":
+
+            amount_values = (
+                df[source_col]
+                .astype(str)
+                .str.replace(
+                    r"[$,₹£€\s]",
+                    "",
+                    regex=True
+                )
+            )
+
+            df[target_col] = pd.to_numeric(
+                amount_values,
+                errors="coerce"
+            )
+
+        else:
+            df[target_col] = df[source_col]
+
+    # Show a mapping summary
+    st.markdown("**Confirmed field mappings**")
+
+    mapping_rows = [
+        {
+            "Business Field": field,
+            "Selected CSV Column": (
+                source_col
+                if source_col != "Not available"
+                else "Not mapped"
+            ),
+            "Status": (
+                "Mapped"
+                if source_col != "Not available"
+                else "Optional field unavailable"
+            )
+        }
+        for field, source_col in selected_fields.items()
+    ]
+
+    st.dataframe(
+        pd.DataFrame(mapping_rows),
+        hide_index=True,
+        use_container_width=True
+    )
+
+    if selected_fields["Transaction Amount"] == "Not available":
         st.warning(
-            "No transaction amount column selected. "
-            "Transaction amount analysis will be unavailable."
+            "Transaction amount is not mapped. "
+            "Amount-based analytics and fraud detection "
+            "will be unavailable."
         )
-
-    if transaction_id_col != "Not available":
-        df["TransactionID"] = df[transaction_id_col]
 
     
     # =========================
