@@ -35,13 +35,123 @@ if uploaded_file:
     st.success(
         f"Dataset loaded successfully. {len(df)} records available for analysis."
         )
+    
+    # =========================
+    # Version 2: Intelligent Schema Detection
+    # =========================
+
+    st.subheader("🧭 Intelligent Column Detection")
+
+    # Normalize column names for matching
+    normalized_cols = {
+        col: "".join(ch.lower() for ch in str(col) if ch.isalnum())
+        for col in df.columns
+    }
+
+    def find_candidate(aliases):
+        for col, normalized in normalized_cols.items():
+            if normalized in aliases:
+                return col
+        return "Not available"
+
+    # Detect likely transaction amount column
+    amount_aliases = {
+        "transactionamount",
+        "txnamount",
+        "amount",
+        "transactionvalue",
+        "txnvalue",
+        "value"
+    }
+
+    detected_amount = find_candidate(amount_aliases)
+
+    # Detect likely transaction ID column
+    id_aliases = {
+        "transactionid",
+        "txnid",
+        "transactionreference",
+        "referenceid",
+        "transactionnumber"
+    }
+
+    detected_id = find_candidate(id_aliases)
+
+    available_columns = ["Not available"] + list(df.columns)
+
+    with st.expander("Review and confirm detected columns", expanded=True):
+
+        st.caption(
+            "The agent suggests column mappings automatically. "
+            "Please confirm them before analysis."
+        )
+
+        amount_index = (
+            available_columns.index(detected_amount)
+            if detected_amount in available_columns
+            else 0
+        )
+
+        amount_col = st.selectbox(
+            "Transaction Amount",
+            available_columns,
+            index=amount_index,
+            key="v2_amount_column"
+        )
+
+        id_index = (
+            available_columns.index(detected_id)
+            if detected_id in available_columns
+            else 0
+        )
+
+        transaction_id_col = st.selectbox(
+            "Transaction ID",
+            available_columns,
+            index=id_index,
+            key="v2_transaction_id_column"
+        )
+
+    # Create standard column names for existing features
+    # while preserving the original uploaded columns.
+
+    if amount_col != "Not available":
+        amount_values = (
+            df[amount_col]
+            .astype(str)
+            .str.replace(r"[$,₹£€\s]", "", regex=True)
+        )
+
+        df["TransactionAmount"] = pd.to_numeric(
+            amount_values,
+            errors="coerce"
+        )
+
+        st.success(
+            f"Transaction amount mapped to: {amount_col}"
+        )
+    else:
+        st.warning(
+            "No transaction amount column selected. "
+            "Transaction amount analysis will be unavailable."
+        )
+
+    if transaction_id_col != "Not available":
+        df["TransactionID"] = df[transaction_id_col]
+
+    
     # =========================
     # Sidebar Filters
     # =========================
 
     st.sidebar.header("Filters")
 
-    categorical_cols = df.select_dtypes(include='object').columns
+    # Default: use the complete dataset
+    filtered_df = df.copy()
+
+    categorical_cols = df.select_dtypes(
+        include=["object", "category", "bool"]
+    ).columns
 
     if len(categorical_cols) > 0:
 
@@ -51,7 +161,6 @@ if uploaded_file:
         )
 
         unique_values = list(df[selected_col].dropna().unique())
-        # Add "All Data" at the beginning
         unique_values.insert(0, "All Data")
 
         selected_value = st.sidebar.selectbox(
@@ -59,16 +168,14 @@ if uploaded_file:
             unique_values
         )
 
-        if selected_value == "All Data":
-            filtered_df = df
-        else:
-            filtered_df = df[df[selected_col] == selected_value]
+        if selected_value != "All Data":
+            filtered_df = df[
+                df[selected_col] == selected_value
+            ]
 
-    #else:
-     #   filtered_df = df
     st.sidebar.write(
         f"Records selected: {len(filtered_df)}"
-        )
+    )
     # =========================
     # Dataset Preview
     # =========================
